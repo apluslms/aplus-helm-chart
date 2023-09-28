@@ -1,0 +1,174 @@
+# Default values for aplus.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+aplus:
+  # replicaCount is the number of replicas of A+ to deploy
+  replicaCount: 1
+  # hostname is the application hostname that ingresses etc will be created for
+  hostname: "aplus.local"
+  # image is the docker image to use for A+ deployment
+  image: "apluslms/aplus:v1.20.1-00"
+  # resources defines the cpu and memory requests and limits for the A+ pod
+  resources: {}
+  # adminIPs are a list of IP address CIDRs from which the application can be accessed even during maintenance
+  adminIPs: []
+  # maintenance determines if the application should be in maintenance mode
+  maintenance: false
+  # maintenanceText is the text shown to users who try to access the site during maintenance
+  maintenanceText: "A+ is currently under maintenance."
+  # extraHostnames creates more ingress host entries for DNS alt names
+  extraHostnames: []
+  # loginApps determines which authentication applications should be enabled in addition to local auth
+  loginApps: []
+  tls:
+    # tls: enabled determines if A+ uses https or not
+    enabled: false
+    # clusterIssuer: myClusterIssuer
+    # key: |-
+    #   -----BEGIN RSA PRIVATE KEY-----
+    #   ...
+    # certificate: |-
+    #   -----BEGIN CERTIFICATE-----
+    #   ...
+  # env supplies the A+ container with extra environment variables
+  env: {}
+  # djangoSettings is a key-value mapping for defining settings for Django's local_settings.py file
+  djangoSettings: {}
+  ingress:
+    # ingress.annotations defines extra annotations for A+ ingress
+    annotations: {}
+  # enableCelery determines whether a celery pod should be created for handling tasks like automated resubmission of failed submissions
+  enableCelery: true
+  # allowedIPs is a list of IP address CIDRs from which A+ can be accessed
+  allowedIPs:
+  - "0.0.0.0/0"
+grader:
+  # replicaCount is the number of replicas of mooc-grader to deploy
+  replicaCount: 1
+  # hostname is the application hostname that ingresses etc will be created for
+  hostname: "grader.local"
+  # extraHostnames creates more ingress host entries for DNS alt names
+  extraHostnames: []
+  # image is the docker image to use for mooc-grader deployment
+  image: "apluslms/grader:v1.20.0-00"
+  # resources defines the cpu and memory requests and limits for the mooc-grader pod
+  resources: {}
+  tls:
+    # tls: enabled determines if mooc-grader uses https or not
+    enabled: false
+    # clusterIssuer: myClusterIssuer
+    # key: |-
+    #   -----BEGIN RSA PRIVATE KEY-----
+    #   ...
+    # certificate: |-
+    #   -----BEGIN CERTIFICATE-----
+    #   ...
+  ingress:
+    # ingress.annotations defines extra annotations for mooc-grader ingress
+    annotations: {}
+  # allowedIPs is a list of IP address CIDRs from which mooc-grader can be accessed
+  allowedIPs:
+  - "0.0.0.0/0"
+  # djangoSettings is a key-value mapping for defining settings for Django's local_settings.py file
+  djangoSettings: {}
+  # env supplies the mooc-grader container with extra environment variables
+  env:
+    K8S_LABEL_KEY: 'aplus-app' # Used for pod labels / taints / tolerations
+
+
+gitmanager:
+  # replicaCount is the number of replicas of gitmanager to deploy
+  replicaCount: 1
+  # hostname is the application hostname that ingresses etc will be created for
+  hostname: "gitmanager.local"
+  # image is the docker image to use for gitmanager deployment
+  image: "apluslms/gitmanager:v1.20.1-00"
+  # resources defines the cpu and memory requests and limits for the gitmanager and Huey containers. Note that both containers get this, so the pod's total resource requests/limits are 2x this.
+  resources: {}
+  # extraHostnames creates more ingress host entries for DNS alt names
+  extraHostnames: []
+  tls:
+    # tls: enabled determines if mooc-grader uses https or not
+    enabled: false
+    # clusterIssuer: myClusterIssuer
+  env: {}
+  djangoSettings: {}
+  sshKeys: {}
+  ingress:
+    annotations: {}
+  allowedIPs:
+  - "0.0.0.0/0"
+
+shibboleth:
+  enabled: false
+  # key: |-
+  #   -----BEGIN RSA PRIVATE KEY-----
+  #   ...
+  #   -----END RSA PRIVATE KEY-----
+  # certificate: |-
+  #   -----BEGIN CERTIFICATE-----
+  #   ...
+  #   -----END CERTIFICATE-----
+
+pvcs:
+  aplusDb:
+    storageClassName: "default"
+  aplusMedia:
+    storageClassName: "default"
+  graderCourses:
+    storageClassName: "default"
+  graderExercisesMeta:
+    storageClassName: "default"
+  graderSubmissions:
+    storageClassName: "default"
+  graderStatic:
+    storageClassName: "default"
+  gitmanager:
+    storageClassName: "default"
+  gitmanagerBuild:
+    storageClassName: "default"
+  gitmanagerCourses:
+    storageClassName: "default"
+
+# Alternative way of defining pvcs to use
+# pvcs:
+#   aplusDb:
+#     labels:
+#       myLabelKey: myLabelValue
+#       myLabelKey2: myLabelValue2
+#   ...
+
+# installDatabase determines if the chart install includes a database deployment
+installDatabase: true
+# dbHost is the host name of the DB as seen from the A+ pods
+dbHost: "aplus-db"
+# dbName is the name of the database on the DB server
+dbName: "aplus"
+# dbUser is the username of the database user
+dbUser: "aplus"
+dbSslMode: "disable"
+# dbPassword is the database password - if unset, a random alphanum pw is generated on chart installation
+# dbPassword: ""
+# secretKey is the Django cryptographic algorithm key, SECRET_KEY in settings - if unset, a random alphanum key is generated on chart installation
+# secretKey: ""
+
+instrumentation:
+  enabled: false
+  # opentelemetryCollectorEndpoint: "http://opentelemetry-collector.monitoring.svc:4318"
+  # opentelemetryServiceNames:
+  #   aplus: "A+"
+  #   grader: "MOOC-grader"
+  #   gitmanager: "Gitmanager"
+
+memcached:
+  extraEnvVars:
+  - name: "MEMCACHED_CACHE_SIZE"
+    value: "2048"
+  resources:
+    limits:
+      memory: 2048Mi
+      cpu: 250m
+    requests:
+      memory: 2048Mi
+      cpu: 250m

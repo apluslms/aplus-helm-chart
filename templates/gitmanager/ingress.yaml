@@ -1,0 +1,42 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gitmanager-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    {{- if .Values.gitmanager.tls.clusterIssuer  }}
+    cert-manager.io/cluster-issuer: {{ .Values.gitmanager.tls.clusterIssuer }}
+    {{- end}}
+    {{- if .Values.gitmanager.ingress.annotations }}
+    {{- toYaml .Values.gitmanager.ingress.annotations | nindent 4 }}
+    {{- end }}
+spec:
+  rules:
+  - host: {{ .Values.gitmanager.hostname }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gitmanager
+            port: 
+              number: 80
+  {{- range .Values.gitmanager.extraHostnames }}
+  - host: {{ . }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gitmanager
+            port:
+              number: 80
+  {{- end }}
+  {{- if .Values.gitmanager.tls.enabled }}
+  tls:
+  - hosts: [ {{ .Values.gitmanager.hostname }}{{ range .Values.gitmanager.extraHostnames }}, {{.}}{{end}} ]
+    secretName: gitmanager-tls
+  {{- end}}

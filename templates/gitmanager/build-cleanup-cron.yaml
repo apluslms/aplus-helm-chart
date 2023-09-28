@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: build-cleanup
+spec:
+  schedule: "48 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: grader-sa
+          containers:
+          - name: cleanup
+            image: fissio/python-k8s-client:v18.20.0-00
+            env:
+            - name: "NAMESPACE"
+              value: "{{ .Release.Namespace }}"
+            volumeMounts:
+            - mountPath: /cleanup.py.template
+              name: config
+              subPath: build-cleanup.py.template
+            command: ['/bin/sh', '-c', 'envsubst < /cleanup.py.template > /cleanup.py && python3 /cleanup.py']
+          volumes:
+          - name: config
+            configMap:
+              name: gitmanager-config
+              defaultMode: 0777
+          restartPolicy: Never

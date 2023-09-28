@@ -1,0 +1,195 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aplus
+  labels:
+    app: aplus
+spec:
+  replicas: {{ .Values.aplus.replicaCount }}
+  selector:
+    matchLabels:
+      app: aplus
+  template:
+    metadata:
+      labels:
+        app: aplus
+      {{- if .Values.instrumentation.enabled }}
+      annotations:
+        instrumentation.opentelemetry.io/inject-python: "instrumentation-aplus"
+        instrumentation.opentelemetry.io/container-names: "aplus"
+      {{- end }}
+    spec:
+      serviceAccountName: aplus-sa
+      containers:
+      - name: aplus
+        image: {{ .Values.aplus.image }}
+        volumeMounts:
+        - mountPath: /fix_local_settings.py
+          name: config
+          subPath: fix_local_settings.py
+        - mountPath: /a-plus/aplus/local_settings.py.template
+          name: config
+          subPath: local_settings.py.template
+        - mountPath: /run.sh
+          name: config
+          subPath: run.sh
+        - mountPath: /uwsgi-aplus-web.ini
+          name: config
+          subPath: uwsgi.ini
+        - mountPath: /a-plus/media
+          name: media
+        - mountPath: /a-plus/static/
+          name: static
+        - mountPath: /run/aplus
+          name: run
+        - mountPath: /aplus-auth
+          name: aplus-pem
+        - mountPath: /grader-public.pem
+          name: grader-pem
+          subPath: grader-public.pem
+        - mountPath: /gitmanager-public.pem
+          name: gitmanager-pem
+          subPath: gitmanager-public.pem
+        {{- if .Values.accessibilityStatementFi }}
+        - mountPath: /a-plus/local_templates/institution_accessibility_text_fi.html
+          name: config
+          subPath: accessibilityStatementFi
+        {{- end }}
+        {{- if .Values.accessibilityStatementEn }}
+        - mountPath: /a-plus/local_templates/institution_accessibility_text_en.html
+          name: config
+          subPath: accessibilityStatementEn
+        {{- end }}
+        {{- if .Values.privacyNoticeEn }}
+        - mountPath: /a-plus/local_templates/privacy_notice_en.html
+          name: config
+          subPath: privacyNoticeEn
+        {{- end }}
+        {{- if .Values.privacyNoticeFi }}
+        - mountPath: /a-plus/local_templates/privacy_notice_fi.html
+          name: config
+          subPath: privacyNoticeFi
+        {{- end }}
+        command: ["/run.sh"]
+        {{- if .Values.instrumentation.enabled }}
+        env:
+        - name: PYTHONPATH
+          value: "/a-plus"
+        - name: OTEL_METRICS_EXPORTER
+          value: "none"
+        - name: DJANGO_SETTINGS_MODULE
+          value: "aplus.settings"
+        {{- end }}
+        envFrom:
+        - configMapRef:
+            name: aplus-env
+        - secretRef:
+            name: aplus-init-secrets
+        {{- if .Values.aplus.resources }}
+        resources: {{- toYaml .Values.aplus.resources | nindent 10 }}
+        {{- end}}
+        {{- if not .Values.aplus.maintenance }}
+        readinessProbe:
+          httpGet:
+            path: "/"
+            port: 80
+          initialDelaySeconds: 0
+          periodSeconds: 20
+          timeoutSeconds: 15
+        livenessProbe:
+          httpGet:
+            path: "/"
+            port: 80
+          initialDelaySeconds: 20
+          periodSeconds: 120
+          timeoutSeconds: 15
+        {{- end }}
+      - name: nginx
+        image: fissio/nginx-shibboleth:1.23.4-00
+        envFrom:
+        - configMapRef:
+            name: aplus-env
+        volumeMounts:
+        - mountPath: /docker-entrypoint.sh
+          name: config
+          subPath: docker-entrypoint.sh
+        - mountPath: /etc/nginx/templates/
+          name: nginx-templates
+        - mountPath: /etc/nginx/nginx.conf
+          name: config
+          subPath: nginx.conf
+        - mountPath: /etc/nginx/fastcgi_params
+          name: config
+          subPath: fastcgi_params
+        - mountPath: /etc/nginx/shib_clear_headers
+          name: config
+          subPath: shib_clear_headers
+        - mountPath: /run/aplus
+          name: run
+        - mountPath: /a-plus/static
+          name: static
+        - mountPath: /a-plus/media
+          name: media
+        {{- if .Values.aplus.maintenance }}
+        - mountPath: /etc/nginx/html/maintenance.html
+          name: config
+          subPath: maintenanceText
+        {{- end }}
+        {{- if .Values.shibboleth.enabled }}
+        - mountPath: /etc/shibboleth/sp-cert.pem
+          name: shibboleth-creds
+          subPath: cert
+        - mountPath: /etc/shibboleth/sp-key.pem
+          name: shibboleth-creds
+          subPath: key
+        - mountPath: /etc/shibboleth/shibboleth2.xml
+          name: config
+          subPath: shibboleth2.xml
+        - mountPath: /etc/shibboleth/haka-sign-v4.pem
+          name: config
+          subPath: haka-sign-v4.pem
+        - mountPath: /etc/shibboleth/haka_testi_2018_sha2.crt
+          name: config
+          subPath: haka_testi_2018_sha2.crt
+        - mountPath: /etc/shibboleth/haka_test_metadata_signed.xml
+          name: config
+          subPath: haka_test_metadata_signed.xml
+        - mountPath: /etc/shibboleth/attribute-map.xml
+          name: config
+          subPath: attribute-map.xml
+        {{- end}}
+        ports:
+          - containerPort: 80
+      {{- if .Values.aplus.affinity }}
+      affinity:
+        {{- toYaml .Values.aplus.affinity | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: config
+        configMap:
+          name: aplus-config
+          defaultMode: 0777
+      - name: nginx-templates
+        configMap:
+          name: aplus-nginx-templates
+      - name: static
+        emptyDir: {}
+      - name: run
+        emptyDir: {}
+      - name: media
+        persistentVolumeClaim:
+          claimName: aplus-media-claim
+      - name: aplus-pem
+        secret:
+          secretName: aplus-pem
+      - name: grader-pem
+        secret:
+          secretName: grader-pem
+      - name: gitmanager-pem
+        secret:
+          secretName: gitmanager-pem
+      {{- if .Values.shibboleth.enabled }}
+      - name: shibboleth-creds
+        secret:
+          secretName: shibboleth-creds
+      {{- end }}

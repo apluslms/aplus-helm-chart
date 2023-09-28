@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grader-env
+data:
+  DISABLE_LOAD_ENVIRONMENT_SETTINGS: "true"
+  APP_HOSTNAME: "{{ .Values.grader.hostname }}"
+  APLUS_APP_HOSTNAME: "{{ .Values.aplus.hostname }}"
+  KUBERNETES_NAMESPACE: "{{ .Release.Namespace }}"
+  NGINX_ALLOWED_IPS_LINE: "{{ range $.Values.grader.allowedIPs }}allow {{ . | title -}}; {{ end }}"
+  {{- if .Values.grader.tls.enabled }}
+  URI_SCHEME: "https"
+  {{- else }}
+  URI_SCHEME: "http"
+  {{- end}}
+  {{- if .Values.grader.aplusAuthExtra }}
+  APLUS_AUTH_EXTRA: |-
+{{ .Values.grader.aplusAuthExtra | indent 4}}
+  {{- else }}
+  APLUS_AUTH_EXTRA: ""
+  {{- end }}
+  {{- range $key, $val := .Values.grader.env }}
+  {{ $key }}: {{ $val }}
+  {{- end }}
+  ENV_SETTINGS_PREFIX: "HELM_GRADER_"
+  {{- range $key, $val := .Values.grader.djangoSettings }}
+  HELM_GRADER_{{ $key }}: {{ $val | toJson | quote }}
+  {{- end }}

@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+# Implement the run function below to create a submission grading script
+# raise ConfigError in case of a configuration error (do not catch it)
+
+import logging
+from typing import Any, Dict, Optional, Tuple
+
+from access.config import ConfigError
+
+from kubernetes import client as c, config
+import re, itertools, json, sys, socket
+from os import listdir
+
+logger = logging.getLogger("runner.template")
+
+def makeValidLabel(l):
+    label_start_re = re.compile("[a-zA-Z]")
+    label_re = re.compile("[a-zA-Z0-9_-]")
+    # get string
+    if isinstance(l, dict):
+        l = l.get('en') or l.values()[0]
+    # replace umlauts
+    l = l.replace('ä', 'a')
+    l = l.replace('ö', 'o')
+    # only accept alphabet starting
+    l = itertools.dropwhile(lambda x: not label_start_re.match(x), l)
+    l = ''.join(l)
+    # the rest can be alphanumeric, - or _
+    l = ''.join(ch for ch in l if label_re.match(ch))
+    return l[0:62]
+
+def run(
+    course: Dict[str, Any],
+    exercise: Dict[str, Any],
+    container_config: Dict[str, Any],
+    submission_id: str,
+    host_url: str,
+    readwrite_mounts: Dict[str, str],
+    readonly_mounts: Dict[str, str],
+    image: str,
+    cmd: str,
+    settings: Any,
+    **kwargs,
+    ) -> Tuple[int, str, str]:
+  """
+  Grades the submission asynchronously and returns (return_code, out, err).
+  out and err as in stdout and stderr output of a program.
+   **kwargs is recommended for the case that more arguments are added later.
+  """
+  try:
+    print(course)
+    print(exercise)
+    print(container_config)
+    print(submission_id)
+    print(host_url)
+    print(readwrite_mounts)
+    print(readonly_mounts)
+    print(image)
+    print(cmd)
+    print(settings)
+    # implement here
+    
+    COURSE_LABEL = makeValidLabel('id-' + course.get('name', ''))
+    EXERCISE_LABEL = makeValidLabel(exercise.get('title', ''))
+    DEFAULT_CPU = 2
+    DEFAULT_MEM = "4Gi"    
+    
+    #exercise_mount_path = [k for (k,v) in readonly_mounts.items() if v == "/exercise"][0]
+    #submission_mount_path = [k for (k,v) in readwrite_mounts.items() if v == "/submission"][0]
+    #exercise_subpath = exercise_mount_path.split('/', 3)[3]
+    #submission_subpath = submission_mount_path.split('/', 2)[2]
+    
+    volumes = [
+      { "name": "submission", "persistentVolumeClaim": { "claimName": "grader-submissions-claim" } },
+      { "name": "exercise", "persistentVolumeClaim": { "claimName": "grader-courses-claim" } },
+    ]
+    volume_mounts = []
+    
+    if exercise.get("personalized", None) != None:
+      volumes.append({
+        "name": "exercises-meta", "persistentVolumeClaim": { "claimName": "grader-exercises-meta-claim" }
+      })
+    
+    for (sourcePath, mountPath) in readwrite_mounts.items():
+      mount = {
+        "name": "submission",
+        "mountPath": mountPath,
+        "subPath": sourcePath.split('/', 2)[2],
+      }
+      volume_mounts.append(mount)
+    
+    for (sourcePath, mountPath) in readonly_mounts.items():
+      mount = {
+        "name": "exercise",
+        "mountPath": mountPath,
+        "subPath": sourcePath.split('/', 3)[3],
+        "readOnly": True
+      }
+      # Personalized exercises come from a different volume
+      if mountPath == '/personalized_exercise':
+        mount["name"] = "exercises-meta"
+      volume_mounts.append(mount)
+
+    namespace = settings.get("namespace", "default")
+    restrictNetwork = "true"
+    if container_config.get("enable_network", False) != False:
+        restrictNetwork = "false"
+    pod = {}
+    pod["metadata"] = {
+        "generateName": 'grader-',
+        "namespace": namespace,
+        "labels": { "course": COURSE_LABEL, "exercise": EXERCISE_LABEL, "restrictNetwork": restrictNetwork }
+    }
+    
+
+    # Initial resources config
+    resource_config = container_config.get("resources", {})
+    mem = resource_config.get("memory", DEFAULT_MEM)
+    cpu = resource_config.get("cpu", DEFAULT_CPU)
+
+    securityContext = {}
+    nodeSelector = {}
+    tolerations = []
+
+    if container_config.get("privileged", False) != False:
+      securityContext = { "privileged": True }
+      nodeSelector = { "${K8S_LABEL_KEY}": "privileged-grading" }
+      tolerations = [{
+        "key": "${K8S_LABEL_KEY}",
+        "value": "privileged-grading",
+        "operator": "Equal",
+        "effect": "NoSchedule"
+      }]
+
+    # Finalized resource config
+    resources = {
+      "requests": { "cpu": cpu, "memory": mem },
+      "limits": { "cpu": cpu, "memory": mem },
+    }
+    pod["spec"] = {
+      "automountServiceAccountToken": False,
+      "activeDeadlineSeconds": 1800,
+      "containers": [{
+        "name": 'grader',
+        "image": image,
+        "lifecycle": {
+          "preStop": { "exec": { "command": ["grade"] } }
+        },
+        "args": [cmd],
+        "volumeMounts": volume_mounts,
+        "imagePullPolicy": "IfNotPresent",
+        "resources": resources,
+        "env": [{ "name": "SID", "value": submission_id }, { "name": "REC", "value": "http://grader" }],
+        "securityContext": securityContext
+      }],
+      "nodeSelector": nodeSelector,
+      "volumes": volumes,
+      "restartPolicy": "Never",
+      "tolerations": tolerations,
+      "imagePullSecrets": [{ "name": "mooc-grader-regkey" }]
+      # FIXME: would this break anything?
+      #automount_service_account_token=False,
+    }
+
+    # Configure 'constant load environment' exercise
+    # NOTE: Requires at least one backend node to be labeled + tainted appropriately
+    constant_env_string = "constant-env-grading"
+    if COURSE_LABEL == "CS-E3190PrinciplesofAlgorithmicTechniques":
+      constant_env_string = "performant-constant-env-grading"
+      # Select only from dedicated nodes
+      pod["spec"]["nodeSelector"] = {
+        "${K8S_LABEL_KEY}": constant_env_string
+      }
+      # Allow running on the dedicated node
+      pod["spec"]["tolerations"] = [{
+        "key": "${K8S_LABEL_KEY}",
+        "operator": "Equal",
+        "value": constant_env_string
+      }]
+    elif container_config.get("require_constant_environment", False) != False:
+      # Label the pod
+      pod["metadata"]["labels"]["${K8S_LABEL_KEY}"] = "constant-env-grading"
+      # Disallow multiple pods of this type from running on a node
+      pod["spec"]["affinity"] = {
+        "podAntiAffinity": {
+          "requiredDuringSchedulingIgnoredDuringExecution": [{
+            "labelSelector": {
+              "matchLabels": {
+                "${K8S_LABEL_KEY}": constant_env_string
+              }
+            },
+            "topologyKey": "kubernetes.io/hostname"
+          }]
+        }
+      }
+      # Select only from dedicated nodes
+      pod["spec"]["nodeSelector"] = {
+        "${K8S_LABEL_KEY}": constant_env_string
+      }
+      # Allow running on the dedicated node
+      pod["spec"]["tolerations"] = [{
+        "key": "${K8S_LABEL_KEY}",
+        "operator": "Equal",
+        "value": constant_env_string
+      }]
+
+    config.load_incluster_config()
+    v1 = c.CoreV1Api()
+    res = v1.create_namespaced_pod(
+        namespace,
+        pod
+    )
+
+    return 0, res.metadata.name, ""
+  except:
+    logger.exception("An exception while trying to run grading container")
+    return 1, "", "An exception happened"

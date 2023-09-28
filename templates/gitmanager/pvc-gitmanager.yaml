@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitmanager-claim
+spec:
+  {{- if .Values.pvcs.gitmanager.labels }}
+  selector:
+    matchLabels:
+      {{- range $key, $val := .Values.pvcs.gitmanager.labels }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+  {{- else }}
+  storageClassName: {{ .Values.pvcs.gitmanager.storageClassName }}
+  {{- end }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi

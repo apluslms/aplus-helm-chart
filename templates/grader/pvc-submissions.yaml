@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grader-submissions-claim
+spec:
+  {{- if .Values.pvcs.graderSubmissions.labels }}
+  selector:
+    matchLabels:
+      {{- range $key, $val := .Values.pvcs.graderSubmissions.labels }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+  {{- else }}
+  storageClassName: {{ .Values.pvcs.graderSubmissions.storageClassName }}
+  {{- end }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi

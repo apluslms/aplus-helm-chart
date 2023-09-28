@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aplus-config
+data:
+{{ (.Files.Glob "files/aplus/required/*").AsConfig | indent 2 }}
+{{- if .Values.shibboleth.enabled }}
+{{ (.Files.Glob "files/aplus/shibboleth/*").AsConfig | indent 2 }}
+  shibboleth2.xml: |-
+{{ .Values.shibboleth.shibboleth2xml | indent 4 }}
+{{- end}}
+{{- if .Values.accessibilityStatementFi }}
+  accessibilityStatementFi: |-
+{{ .Values.accessibilityStatementFi | indent 4 }}
+{{- end}}
+{{- if .Values.accessibilityStatementEn }}
+  accessibilityStatementEn: |-
+{{ .Values.accessibilityStatementEn | indent 4 }}
+{{- end}}
+{{- if .Values.privacyNoticeFi }}
+  privacyNoticeFi: |-
+{{ .Values.privacyNoticeFi | indent 4 }}
+{{- end}}
+{{- if .Values.privacyNoticeEn }}
+  privacyNoticeEn: |-
+{{ .Values.privacyNoticeEn | indent 4 }}
+{{- end }}
+{{- if .Values.aplus.maintenance }}
+  maintenanceText: {{ .Values.aplus.maintenanceText }}
+{{- end }}

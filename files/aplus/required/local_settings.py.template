@@ -1,0 +1,68 @@
+from celery.schedules import crontab
+SIS_ENROLL_SCHEDULE = crontab(minute='*/20')
+
+BASE_URL = "${URI_SCHEME}://${APP_HOSTNAME}"
+SERVER_EMAIL = "foo@foo.com"
+DEBUG = False
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST': '${POSTGRES_HOST}',
+        'NAME': '${POSTGRES_DB_NAME}',
+        'USER': '${POSTGRES_USER}',
+        'PASSWORD': '${POSTGRES_PASSWORD}',
+        'CONN_MAX_AGE': 0,
+        'OPTIONS': {
+          'sslmode': '${POSTGRES_SSL_MODE}'
+        }
+    }
+}
+
+GITMANAGER_URL = "${URI_SCHEME}://${GITMANAGER_APP_HOSTNAME}"
+
+INSTALLED_LOGIN_APPS = (${INSTALLED_LOGIN_APPS_STR})
+
+## Shibboleth options
+SHIBBOLETH_ENVIRONMENT_VARS = {
+    # required for the shibboleth system:
+    'PREFIX': 'HTTP_SHIB_', # apache2: SHIB_, nginx: HTTP_SHIB_ (NOTE: client can inject HTTP_ vars!)
+    'STUDENT_DOMAIN': '${SHIBBOLETH_STUDENT_DOMAIN}', # domain where student numbers are selected
+    # ..more options in aplus/settings.py
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        'LOCATION': '${HELM_RELEASE_NAME}-memcached.${KUBERNETES_NAMESPACE}.svc.cluster.local:11211',
+        'TIMEOUT': None,
+        #'OPTIONS': {
+            # /etc/memcached.conf -> -I 2m
+            #'server_max_value_length': 2 * 1024 * 1024,
+        #},
+    }
+
+}
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+SESSION_COOKIE_SECURE = True
+
+KUBERNETES_MODE = True
+KUBERNETES_NAMESPACE = "${KUBERNETES_NAMESPACE}"
+
+SECRET_KEY = "${SECRET_KEY}"
+
+APLUS_AUTH_LOCAL = {
+    "PRIVATE_KEY": open("/aplus-auth/aplus-private.pem", "r").read(),
+    "PUBLIC_KEY": open("/aplus-auth/aplus-public.pem", "r").read(),
+    "DISABLE_JWT_SIGNING": False,
+    "DISABLE_LOGIN_CHECKS": False,
+    "UID_TO_KEY": {
+        "gitmanager": open("/gitmanager-public.pem", "r").read(),
+        "grader": open("/grader-public.pem", "r").read(),    
+    },
+    "TRUSTING_REMOTES": {
+        "${GITMANAGER_APP_HOSTNAME}": "gitmanager",
+        "${GRADER_APP_HOSTNAME}": "grader",
+    }
+}
+

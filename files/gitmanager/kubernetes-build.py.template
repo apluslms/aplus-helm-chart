@@ -1,0 +1,121 @@
+import logging
+from pathlib import Path
+from typing import Any, Dict, Optional
+from kubernetes import client as c, config
+import time
+import json
+import itertools
+import re
+
+def makeValidLabel(l):
+    label_start_re = re.compile("[a-zA-Z]")
+    label_re = re.compile("[a-zA-Z0-9_-]")
+    # get string
+    if isinstance(l, dict):
+        l = l.get('en') or l.values()[0]
+    # replace umlauts
+    l = l.replace('ä', 'a')
+    l = l.replace('ö', 'o')
+    # only accept alphabet starting
+    l = itertools.dropwhile(lambda x: not label_start_re.match(x), l)
+    l = ''.join(l)
+    # the rest can be alphanumeric, - or _
+    l = ''.join(ch for ch in l if label_re.match(ch))
+    return l[0:62]
+
+def build(
+        logger: logging.Logger,
+        course_key: str,
+        path: Path,
+        image: str,
+        cmd: Optional[str],
+        env: Dict[str, str],
+        settings: Any,
+        **kwargs,
+        ) -> bool:
+    """
+    Build the course rooted at <path> synchronously. Use <logger> to log build
+    output and return whether the build succeeded. <settings> is the value
+    specified in django settings for BUILD_MODULE_SETTINGS.
+    """
+
+    print(course_key)
+    print(path)
+    print(image)
+    print(cmd)
+    print(env)
+    print(settings)
+    
+    # Prepare k8s client
+    config.load_incluster_config()
+    v1 = c.CoreV1Api()
+    
+    build_claim_name = "gitmanager-build"
+    working_dir = "/build/" + course_key
+    if str(path).startswith(settings["CONTAINER_PUBLISH_PATH"]):
+        build_claim_name = "gitmanager-courses"
+        working_dir = "/build/publish/" + course_key
+
+    volumes = [
+        { "name": "build", "hostPath": { "type": "Directory", "path": "/mnt/gitmanager-build/${KUBERNETES_NAMESPACE}" } }
+    ]
+    volume_mounts = [
+        { "name": "build", "mountPath": "/build" }
+    ]
+    env = [{"name": key, "value": value} for key,value in env.items()]
+
+    pod = {
+        "metadata": {
+            "generateName": "build-course-",
+            "namespace": "${KUBERNETES_NAMESPACE}",
+            "labels": {
+              "course": makeValidLabel(course_key)
+            }
+        },
+        "spec": {
+            "containers": [{
+                "name": "builder",
+                "image": image,
+                "volumeMounts": volume_mounts,
+                "imagePullPolicy": "IfNotPresent",
+                "env": env,
+                "workingDir": working_dir,
+                "args": cmd
+            }],
+            "volumes": volumes,
+            "restartPolicy": "Never",
+            "affinity": {
+              "podAffinity": {
+                "requiredDuringSchedulingIgnoredDuringExecution": [{
+                  "topologyKey": "kubernetes.io/hostname",
+                  "labelSelector": {
+                    "matchExpressions": [{
+                      "key": "app",
+                      "operator": "In",
+                      "values": ["gitmanager"]
+                    }]
+                  }
+                }]
+              }
+            }
+        }
+    }
+    
+    res = v1.create_namespaced_pod("${KUBERNETES_NAMESPACE}", pod)
+    podName = res.metadata.name
+
+    logger.info("Build Pod created. Config below:")
+    logger.info(json.dumps(pod, indent=2))
+
+    done = False
+    safety = 0
+    while not done and safety < 120:
+        safety += 1
+        res = v1.read_namespaced_pod_status(name=podName, namespace="${KUBERNETES_NAMESPACE}")
+        if res.status.phase == "Failed" or res.status.phase == "Succeeded":
+            done = True
+        else:
+            time.sleep(10)
+    logs = v1.read_namespaced_pod_log(name=podName, namespace="${KUBERNETES_NAMESPACE}")
+    logger.info(logs)
+    return True

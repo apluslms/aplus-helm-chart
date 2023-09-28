@@ -1,0 +1,45 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grader-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "20000m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-buffer-size: "128k"
+    nginx.ingress.kubernetes.io/proxy-buffering: "on"
+    {{- if .Values.grader.tls.clusterIssuer  }}
+    cert-manager.io/cluster-issuer: {{ .Values.grader.tls.clusterIssuer }}
+    {{- end}}
+    {{- if .Values.grader.ingress.annotations }}
+    {{- toYaml .Values.grader.ingress.annotations | nindent 4 }}
+    {{- end }}
+spec:
+  rules:
+  - host: {{ .Values.grader.hostname }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grader
+            port: 
+              number: 80
+  {{- range .Values.grader.extraHostnames }}
+  - host: {{ . }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grader
+            port:
+              number: 80
+  {{- end }}
+  {{- if .Values.grader.tls.enabled }}
+  tls:
+  - hosts: [ {{ .Values.grader.hostname }}{{ range .Values.grader.extraHostnames }}, {{.}}{{end}} ]
+    secretName: grader-tls
+  {{- end}}

@@ -1,0 +1,12 @@
+{{- if .Values.installDatabase }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: aplus-db
+spec:
+  selector:
+    app: aplus-db
+  ports:
+    - protocol: TCP
+      port: 5432
+{{- end }}

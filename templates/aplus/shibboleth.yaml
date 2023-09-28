@@ -1,0 +1,10 @@
+{{- if .Values.shibboleth.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shibboleth-creds
+type: Opaque
+data:
+  key: {{ .Values.shibboleth.key | b64enc }}
+  cert: {{ .Values.shibboleth.certificate | b64enc }}
+{{- end }}

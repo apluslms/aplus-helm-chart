@@ -1,0 +1,26 @@
+from kubernetes import client, config
+from datetime import datetime, timedelta
+import time
+
+config.load_incluster_config()
+k8s = client.CoreV1Api()
+
+pods = k8s.list_namespaced_pod("${NAMESPACE}").items
+
+pod_date_limit = datetime.now(pods[0].status.start_time.tzinfo) - timedelta(hours = 8)
+pods_for_deletion = [pod for pod in pods if
+                     pod.status.phase == 'Succeeded' and
+                     pod.metadata.name.startswith("grader") and
+                     pod.status.start_time < pod_date_limit
+]
+
+start_time = time.time()
+
+for pod in pods_for_deletion:
+  deleted = k8s.delete_namespaced_pod(pod.metadata.name, "${NAMESPACE}")
+
+end_time = time.time()
+
+total_time = end_time - start_time
+
+print("Deleted {} pods in {:.2f} seconds.".format(len(pods_for_deletion), total_time))

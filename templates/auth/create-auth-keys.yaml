@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-authentication-keys
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+spec:
+  template:
+    spec:
+      serviceAccountName: secret-manager
+      restartPolicy: Never
+      containers:
+      - name: create-keys
+        image: bitnami/kubectl:1.20.12
+        command: ["/run.sh"]
+        volumeMounts:
+        - name: config
+          mountPath: /run.sh
+          subPath: run.sh
+      volumes:
+      - name: config
+        configMap:
+          name: auth-config
+          defaultMode: 0777

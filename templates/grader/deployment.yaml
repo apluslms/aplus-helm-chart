@@ -1,0 +1,141 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grader
+  labels:
+    app: aplus
+spec:
+  replicas: {{ .Values.grader.replicaCount }}
+  selector:
+    matchLabels:
+      app: grader
+  template:
+    metadata:
+      labels:
+        app: grader
+        allowAccessFromGrading: "true"
+      {{- if .Values.instrumentation.enabled }}
+      annotations:
+        instrumentation.opentelemetry.io/inject-python: "instrumentation-grader"
+        instrumentation.opentelemetry.io/container-names: "grader"
+      {{- end }}
+    spec:
+      serviceAccountName: grader-sa
+      initContainers:
+      - name: init-course-dirs
+        image: alpine:3.18
+        volumeMounts:
+        - name: courses
+          mountPath: /courses
+        command: ["/bin/sh"]
+        args: ["-c", "if [ ! -e /courses/store ]; then mkdir /courses/store; fi; if [ ! -e /courses/publish ]; then mkdir /courses/publish; fi"]
+      containers:
+      - name: grader
+        image: {{ .Values.grader.image }}
+        ports:
+          - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: grader-env
+        env:
+        - name: LANG
+          value: "en_US.UTF-8"
+        {{- if .Values.instrumentation.enabled }}
+        - name: PYTHONPATH
+          value: "/mooc-grader"
+        - name: OTEL_METRICS_EXPORTER
+          value: "none"
+        - name: DJANGO_SETTINGS_MODULE
+          value: "grader.settings"
+        {{- end }}
+        {{- if .Values.grader.resources }}
+        resources: {{- toYaml .Values.grader.resources | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - mountPath: /mooc-grader/grader/local_settings.py.template
+          name: config
+          subPath: local_settings.py.template
+        - mountPath: /kubernetes-run.py.template
+          name: config
+          subPath: kubernetes-run.py.template
+        - mountPath: /run.sh
+          name: config
+          subPath: run.sh
+        - mountPath: /uwsgi.ini
+          name: config
+          subPath: uwsgi.ini
+        - mountPath: /mooc-grader/courses
+          name: courses
+        - mountPath: /mooc-grader/static
+          name: static
+        - mountPath: /mooc-grader/exercises-meta
+          name: exercises-meta
+        - mountPath: /uploads
+          name: submissions
+        - mountPath: /run/grader
+          name: run
+        - mountPath: /grader-auth
+          name: grader-pem
+        - mountPath: /aplus-public.pem
+          subPath: aplus-public.pem
+          name: aplus-pem
+        - mountPath: /mooc-grader/fix.diff
+          subPath: fix.diff
+          name: config
+        command: ["/run.sh"]
+      - name: nginx
+        image: nginx:stable
+        env:
+        - name: APP_HOSTNAME
+          valueFrom:
+            configMapKeyRef:
+              name: grader-env
+              key: APP_HOSTNAME
+        - name: NGINX_ALLOWED_IPS_LINE
+          valueFrom:
+            configMapKeyRef:
+              name: grader-env
+              key: NGINX_ALLOWED_IPS_LINE
+        ports:
+          - containerPort: 80
+        volumeMounts:
+        - mountPath: /etc/nginx/templates/
+          name: nginx-templates
+        - mountPath: /run/grader
+          name: run
+        - mountPath: /mooc-grader/courses
+          name: courses
+        - mountPath: /mooc-grader/static
+          name: static
+      {{- if .Values.grader.affinity }}
+      affinity:
+        {{- toYaml .Values.grader.affinity | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: submissions
+        persistentVolumeClaim:
+          claimName: grader-submissions-claim
+      - name: exercises-meta
+        persistentVolumeClaim:
+          claimName: grader-exercises-meta-claim
+      - name: courses
+        persistentVolumeClaim:
+          claimName: grader-courses-claim
+      - name: static
+        persistentVolumeClaim:
+          claimName: grader-static-claim
+      - name: config
+        configMap:
+          name: grader-config
+          defaultMode: 0777
+      - name: nginx-templates
+        configMap:
+          name: grader-nginx-templates
+      - name: run
+        emptyDir: {}
+      - name: grader-pem
+        secret:
+          secretName: grader-pem
+      - name: aplus-pem
+        secret:
+          secretName: aplus-pem

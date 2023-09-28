@@ -1,0 +1,22 @@
+{{- if .Values.installDatabase }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aplus-db-claim
+spec:
+  {{- if .Values.pvcs.aplusDb.labels }}
+  selector:
+    matchLabels:
+      {{- range $key, $val := .Values.pvcs.aplusDb.labels }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+  {{- else }}
+  storageClassName: {{ .Values.pvcs.aplusDb.storageClassName }}
+  {{- end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+{{- end }}

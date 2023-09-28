@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: aplus-media-claim
+spec:
+  {{- if .Values.pvcs.aplusMedia.labels }}
+  selector:
+    matchLabels:
+      {{- range $key, $val := .Values.pvcs.aplusMedia.labels }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+  {{- else }}
+  storageClassName: {{ .Values.pvcs.aplusMedia.storageClassName }}
+  {{- end }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi

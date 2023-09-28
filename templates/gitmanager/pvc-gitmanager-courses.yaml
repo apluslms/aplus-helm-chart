@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitmanager-courses
+spec:
+  {{- if .Values.pvcs.gitmanagerCourses.labels }}
+  selector:
+    matchLabels:
+      {{- range $key, $val := .Values.pvcs.gitmanagerCourses.labels }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+  {{- else }}
+  storageClassName: {{ .Values.pvcs.gitmanagerCourses.storageClassName }}
+  {{- end }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi

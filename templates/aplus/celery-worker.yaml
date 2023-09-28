@@ -1,0 +1,75 @@
+{{- if .Values.aplus.enableCelery }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aplus-celery-worker
+  labels:
+    app: aplus-celery-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aplus-celery-worker
+  template:
+    metadata:
+      labels:
+        app: aplus-celery-worker
+    spec:
+      serviceAccountName: aplus-sa
+      containers:
+      - name: aplus
+        image: {{ .Values.aplus.image }}
+        volumeMounts:
+        - mountPath: /fix_local_settings.py
+          name: config
+          subPath: fix_local_settings.py
+        - mountPath: /a-plus/aplus/local_settings.py.template
+          name: config
+          subPath: local_settings.py.template
+        - mountPath: /run.sh
+          name: config
+          subPath: run.sh
+        - mountPath: /a-plus/media
+          name: media
+        - mountPath: /aplus-auth
+          name: aplus-pem
+        - mountPath: /grader-public.pem
+          name: grader-pem
+          subPath: grader-public.pem
+        - mountPath: /gitmanager-public.pem
+          name: gitmanager-pem
+          subPath: gitmanager-public.pem
+        command:
+        - "/bin/bash"
+        - "-c"
+        - "envsubst < /a-plus/aplus/local_settings.py.template > /a-plus/aplus/local_settings.py; celery -A aplus worker -B -l DEBUG --task-events --concurrency=1"
+        envFrom:
+        - configMapRef:
+            name: aplus-env
+        - secretRef:
+            name: aplus-init-secrets
+        resources:
+          requests:
+            cpu: "1"
+      {{- if .Values.affinity }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: config
+        configMap:
+          name: aplus-config
+          defaultMode: 0777
+      - name: media
+        persistentVolumeClaim:
+          claimName: aplus-media-claim
+      - name: aplus-pem
+        secret:
+          secretName: aplus-pem
+      - name: grader-pem
+        secret:
+          secretName: grader-pem
+      - name: gitmanager-pem
+        secret:
+          secretName: gitmanager-pem
+{{- end }}

@@ -1,0 +1,12 @@
+{{- with .Values.grader.tls }}
+{{- if and .enabled .key .certificate }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grader-tls
+type: kubernetes.io/tls
+data:
+  tls.key: {{ .key | b64enc }}
+  tls.crt: {{ .certificate | b64enc }}
+{{- end }}
+{{- end }}

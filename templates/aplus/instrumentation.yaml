@@ -1,0 +1,18 @@
+{{- if .Values.instrumentation.enabled }}
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: instrumentation-aplus
+spec:
+  env:
+    - name: OTEL_SERVICE_NAME
+      value: {{ .Values.instrumentation.opentelemetryServiceNames.aplus }}
+  exporter:
+    endpoint: {{ .Values.instrumentation.opentelemetryCollectorEndpoint }}
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.1"
+{{- end }}

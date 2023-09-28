@@ -1,0 +1,20 @@
+{{- if .Values.instrumentation.enabled }}
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: instrumentation-gitmanager
+spec:
+  env:
+    - name: OTEL_SERVICE_NAME
+      value: {{ .Values.instrumentation.opentelemetryServiceNames.gitmanager }}
+    - name: OTEL_PYTHON_DISABLED_INSTRUMENTATIONS
+      value: sqlite3
+  exporter:
+    endpoint: {{ .Values.instrumentation.opentelemetryCollectorEndpoint }}
+  propagators:
+    - tracecontext
+    - baggage
+  sampler:
+    type: parentbased_traceidratio
+    argument: "0.1"
+{{- end }}

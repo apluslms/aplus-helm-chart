@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: grader-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      restrictNetwork: "true"
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+  - to:
+    - podSelector:
+        matchLabels:
+          allowAccessFromGrading: "true"
+    # grader.cs.hut.fi
+    - ipBlock:
+        cidr: 130.233.195.114/32
+    # grader-focal.cs.aalto.fi
+    - ipBlock:
+        cidr: 130.233.195.122/32
+    # lic-matlab.aalto.fi
+    - ipBlock:
+        cidr: 130.233.13.18/32
+    # version.aalto.fi (feature.org.aalto.fi)
+    - ipBlock:
+        cidr: 130.233.14.41/32
+    # aplus-git-exercise.cs.aalto.fi
+    - ipBlock:
+        cidr: 130.233.195.16/32
+    # GITHUB ADDRS START
+    - ipBlock:
+        cidr: 192.30.252.0/22
+    - ipBlock:
+        cidr: 185.199.108.0/22
+    - ipBlock:
+        cidr: 140.82.112.0/20
+    - ipBlock:
+        cidr: 13.229.188.59/32
+    - ipBlock:
+        cidr: 13.250.177.223/32
+    - ipBlock:
+        cidr: 18.194.104.89/32
+    - ipBlock:
+        cidr: 18.195.85.27/32
+    - ipBlock:
+        cidr: 35.159.8.160/32
+    - ipBlock:
+        cidr: 52.74.223.119/32
+    # GITHUB ADDRS END

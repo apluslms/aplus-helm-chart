@@ -1,0 +1,213 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitmanager
+  template:
+    metadata:
+      labels:
+        app: gitmanager
+      {{- if .Values.instrumentation.enabled }}
+      annotations:
+        instrumentation.opentelemetry.io/inject-python: "instrumentation-gitmanager"
+        instrumentation.opentelemetry.io/container-names: "gitmanager"
+      {{- end }}
+    spec:
+      serviceAccountName: grader-sa
+      initContainers:
+      - name: init-db
+        image: alpine:3.18
+        volumeMounts:
+        - name: sqlite3
+          mountPath: /sqlite3
+        command: ["/bin/sh"]
+        args: ["-c", "if [ ! -e /sqlite3/db.sqlite3 ]; then touch /sqlite3/db.sqlite3; fi"]
+      containers:
+      ### GITMANAGER ###
+      - name: gitmanager
+        image: {{ .Values.gitmanager.image }}
+        workingDir: /gitmanager
+        command: ["/run.sh"]
+        env:
+        - name: REDIS_HOST
+          value: gitmanager-redis
+        {{- if .Values.instrumentation.enabled }}
+        - name: PYTHONPATH
+          value: "/gitmanager"
+        - name: OTEL_METRICS_EXPORTER
+          value: "none"
+        - name: DJANGO_SETTINGS_MODULE
+          value: "gitmanager.settings"
+        {{- end }}
+        envFrom:
+        - configMapRef:
+            name: gitmanager-env
+        {{- if .Values.gitmanager.resources }}
+        resources: {{- toYaml .Values.gitmanager.resources | nindent 10 }}
+        {{- end }}
+        resources:
+        volumeMounts:
+        - name: gitmanager-pem
+          readOnly: true
+          mountPath: "/gitmanager-pem"
+        - name: aplus-pem
+          subPath: aplus-public.pem
+          readOnly: true
+          mountPath: "/aplus-public.pem"
+        - name: config
+          subPath: local_settings.py.template
+          mountPath: /gitmanager/gitmanager/local_settings.py.template
+        - name: sqlite3
+          subPath: db.sqlite3
+          mountPath: /gitmanager/db.sqlite3
+        - name: config
+          subPath: kubernetes-build.py.template
+          mountPath: /kubernetes-build.py.template
+        - mountPath: /gitmanager/courses
+          name: courses
+        - mountPath: /gitmanager/static
+          name: static
+        - mountPath: /run/gitmanager
+          name: run
+        - mountPath: /run.sh
+          name: config
+          subPath: run.sh
+        - mountPath: /uwsgi.ini
+          name: config
+          subPath: uwsgi.ini
+        - mountPath: /fix.diff
+          name: config
+          subPath: fix.diff
+      ### HUEY ###
+      - name: huey
+        image: {{ .Values.gitmanager.image }}
+        workingDir: /gitmanager
+        command: ["/run.sh"]
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "rm -rf /gitmanager-build/*"]
+        env:
+        - name: REDIS_HOST
+          value: gitmanager-redis
+        envFrom:
+        - configMapRef:
+            name: gitmanager-env
+        {{- if .Values.gitmanager.resources }}
+        resources: {{- toYaml .Values.gitmanager.resources | nindent 10}}
+        {{- end }}
+        volumeMounts:
+        - name: gitmanager-pem
+          readOnly: true
+          mountPath: "/gitmanager-pem"
+        - name: aplus-pem
+          subPath: aplus-public.pem
+          readOnly: true
+          mountPath: "/aplus-public.pem"
+        - name: config
+          subPath: local_settings.py.template
+          mountPath: /gitmanager/gitmanager/local_settings.py.template
+        - name: sqlite3
+          subPath: db.sqlite3
+          mountPath: /gitmanager/db.sqlite3
+        - name: config
+          subPath: kubernetes-build.py.template
+          mountPath: /kubernetes-build.py.template
+        - mountPath: /gitmanager/courses
+          name: courses
+        - mountPath: /gitmanager/static
+          name: static
+        - mountPath: /gitmanager-build
+          name: gitmanager-build
+        {{- range $keyName, $keyValue := .Values.gitmanager.sshKeys}}
+        - mountPath: /root/.ssh/{{ $keyName }}
+          name: gitmanager-ssh
+          subPath: {{ $keyName }}
+        {{- end }}
+        {{- if .Values.gitmanager.known_hosts }}
+        - mountPath: /root/.ssh/known_hosts
+          name: gitmanager-ssh
+          subPath: known_hosts
+        {{- end }}
+        {{- if .Values.gitmanager.sshConfig }}
+        - mountPath: /root/.ssh/config
+          name: gitmanager-ssh
+          subPath: config
+        {{- end }}
+        - mountPath: /run.sh
+          name: config
+          subPath: run-huey.sh
+        - mountPath: /fix.diff
+          name: config
+          subPath: fix.diff
+        - mountPath: /root/.gitconfig
+          name: config
+          subPath: ".gitconfig"
+      ### NGINX ###
+      - name: nginx
+        image: nginx:1.21.4
+        env:
+        - name: APP_HOSTNAME
+          valueFrom:
+            configMapKeyRef:
+              name: gitmanager-env
+              key: APP_HOSTNAME
+        - name: NGINX_ALLOWED_IPS_LINE
+          valueFrom:
+            configMapKeyRef:
+              name: gitmanager-env
+              key: NGINX_ALLOWED_IPS_LINE
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: static
+          mountPath: /gitmanager/static
+        - name: courses
+          mountPath: /gitmanager/courses
+        - mountPath: /etc/nginx/templates/
+          name: nginx-templates
+        - mountPath: /run/gitmanager
+          name: run
+      {{- if .Values.gitmanager.affinity }}
+      affinity:
+        {{- toYaml .Values.gitmanager.affinity | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: gitmanager-pem
+        secret:
+          secretName: gitmanager-pem
+      - name: aplus-pem
+        secret:
+          secretName: aplus-pem
+      - name: sqlite3
+        persistentVolumeClaim:
+          claimName: gitmanager-claim
+      - name: courses
+        persistentVolumeClaim:
+          claimName: gitmanager-courses
+      - name: static
+        persistentVolumeClaim:
+          claimName: grader-static-claim
+      - name: gitmanager-build
+        hostPath:
+          type: DirectoryOrCreate
+          path: "/mnt/gitmanager-build/{{ .Release.Namespace }}"
+        #persistentVolumeClaim:
+        #  claimName: gitmanager-build
+      - name: gitmanager-ssh
+        secret:
+          secretName: gitmanager-ssh
+          defaultMode: 0600
+      - name: config
+        configMap:
+          name: gitmanager-config
+          defaultMode: 0777
+      - name: nginx-templates
+        configMap:
+          name: gitmanager-nginx-templates
+      - name: run
+        emptyDir: {}

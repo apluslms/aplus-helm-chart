@@ -1,0 +1,27 @@
+SUBMISSION_PATH = '/uploads/'
+CONTAINER_MODE = True
+
+BASE_URL = "${URI_SCHEME}://${APP_HOSTNAME}"
+
+#ADD_APPS = (
+#    'gitmanager',
+#)
+
+RUNNER_MODULE = "/kubernetes-run.py"
+RUNNER_MODULE_SETTINGS = {
+  "namespace": "${KUBERNETES_NAMESPACE}",
+}
+
+APLUS_AUTH_LOCAL = {
+  "PRIVATE_KEY": open("/grader-auth/grader-private.pem", "r").read(),
+  "PUBLIC_KEY": open("/grader-auth/grader-public.pem", "r").read(),
+  "REMOTE_AUTHENTICATOR_KEY": open("/aplus-public.pem", "r").read(),
+  "REMOTE_AUTHENTICATOR_URL": "${URI_SCHEME}://${APLUS_APP_HOSTNAME}/api/v2/get-token/",
+  "REMOTE_AUTHENTICATOR_UID": "aplus",
+  "DISABLE_JWT_SIGNING": False,
+  "DISABLE_LOGIN_CHECKS": False,
+${APLUS_AUTH_EXTRA}
+}
+
+COURSES_PATH = "/mooc-grader/courses/publish"
+COURSE_STORE = "/mooc-grader/courses/store"

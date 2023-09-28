@@ -1,0 +1,125 @@
+upstream aplus-web {
+  server unix:/run/aplus/web-uwsgi.socket;
+}
+
+server {
+  listen 80;
+  server_name   ${NGINX_EXTRA_HOSTNAMES_LINE};
+  return 301 $scheme://${APP_HOSTNAME}$request_uri;
+}
+
+# Add admin IP addresses/blocks to the list below to bypass the
+# maintenance mode
+geo $is_admin_ip {
+  # 0 = not admin
+  default           0;
+  # 1 = is admin
+  ${NGINX_ADMIN_IPS_LINE}
+  # 192.0.2.2/32      1;
+  # 192.0.2.3/32      1;
+}
+
+server {
+  set_real_ip_from    0.0.0.0/0;
+  real_ip_header X-Forwarded-For;
+
+  client_max_body_size 100M;
+  
+  # Redirect users to an error page if aplus is in maintenance mode
+  set $maintenance ${MAINTENANCE_MODE};
+  # Admins are never redirected
+  if ($is_admin_ip) {
+    set $maintenance 0;
+  }
+
+  listen 80 default_server;
+  listen [::]:80 ipv6only=on;
+  server_name ${APP_HOSTNAME};
+  underscores_in_headers on;
+
+  error_page 503 @maintenance;
+  location @maintenance {
+    rewrite ^(.*)$ /maintenance.html break;
+  }
+
+  # Shibboleth2
+  location /shibboleth-sp {
+    # Static files including main.css
+    alias /var/www/shibboleth-sp/;
+  }
+
+  # FastCGI authorizer for Shibboleth Auth Request module
+  location = /shibauthorizer {
+    internal;
+    include fastcgi_params;
+    fastcgi_pass unix:/run/shibboleth/shibauthorizer.sock;
+  }
+
+  # FastCGI responder for SSO
+  location /Shibboleth.sso {
+    include fastcgi_params;
+    fastcgi_pass unix:/run/shibboleth/shibresponder.sock;
+  }
+
+  set $privacyNoticeUrl "${PRIVACY_NOTICE_URL}"; 
+
+  location /accounts/privacy-notice {
+    if ($privacyNoticeUrl) {
+      return 302 ${PRIVACY_NOTICE_URL};
+    }
+
+    include uwsgi_params;
+    uwsgi_pass aplus-web;
+
+  }
+  location = /robots.txt {
+    alias /a-plus/static/robots.txt;
+  }
+  location = /favicon.ico {
+    alias /a-plus/static/favicons/favicon.ico;
+  }
+  location /static {
+    alias /a-plus/static;
+  }
+  location /media/public {
+    alias /a-plus/media/public;
+  }
+  location / {
+    if ($maintenance) { return 503; }
+    ${NGINX_ALLOWED_IPS_LINE}
+    deny all;
+    include uwsgi_params;
+    uwsgi_pass aplus-web;
+    uwsgi_read_timeout 300;
+  }
+
+  location /shibboleth {
+    if ($maintenance) { return 503; }
+    # shibboleth
+    shib_request /shibauthorizer;
+    shib_request_use_headers on;
+    # Attributes from Shibboleth are introduced as headers by the FastCGI
+    # authorizer so we must prevent spoofing.
+    # from: https://github.com/nginx-shib/nginx-http-shibboleth/blob/master/includes/shib_clear_headers
+    include shib_clear_headers;
+    # NOTE: add all fields which might be read by your A+ installation!
+    # TODO: get newer headers-more module with wildcard support!
+    more_clear_input_headers
+      shib-eppn
+      shib-givenName
+      shib-sn
+      shib-cn
+      shib-displayName
+      shib-mail
+      shib-preferredLanguage
+      shib-schacPersonalUniqueCode
+      shib-schacHomeOrganization
+      persistent-id
+      shib-targeted-id;
+
+    include uwsgi_params;
+    uwsgi_pass aplus-web;
+  }
+
+}
+

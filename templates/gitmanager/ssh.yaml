@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitmanager-ssh
+data:
+  {{- range $keyName, $keyValue := .Values.gitmanager.sshKeys}}
+  {{ $keyName }}: {{ $keyValue | b64enc }}
+  {{- end }}
+  {{- if .Values.gitmanager.knownHosts }}
+  known_hosts: {{ .Values.gitmanager.knownHosts | b64enc }}
+  {{- end }}
+  {{- if .Values.gitmanager.sshConfig }}
+  config: {{ .Values.gitmanager.sshConfig | b64enc }}
+  {{- end }}

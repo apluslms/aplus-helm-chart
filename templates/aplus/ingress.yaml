@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aplus-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-expires: "1209600"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "1209600"
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    {{- if .Values.aplus.tls.clusterIssuer  }}
+    cert-manager.io/cluster-issuer: {{ .Values.aplus.tls.clusterIssuer }}
+    {{- end }}
+    {{- if .Values.aplus.ingress.annotations }}
+    {{- toYaml .Values.aplus.ingress.annotations | trim | nindent 4 -}}
+    {{- end }}
+spec:
+  rules:
+  - host: {{ .Values.aplus.hostname }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: aplus
+            port:
+              number: 80
+  {{- range .Values.aplus.extraHostnames }}
+  - host: {{ . }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: aplus
+            port:
+              number: 80
+  {{- end }}
+  {{- if .Values.aplus.tls.enabled }}
+  tls:
+  - hosts: [ {{ .Values.aplus.hostname }}{{ range .Values.aplus.extraHostnames }}, {{.}}{{end}} ]
+    secretName: aplus-tls
+  {{ end }}

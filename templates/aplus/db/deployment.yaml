@@ -1,0 +1,44 @@
+{{- if .Values.installDatabase }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aplus-db
+  labels:
+    app: aplus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aplus-db
+  template:
+    metadata:
+      labels:
+        app: aplus-db
+    spec:
+      containers:
+      - name: db
+        image: postgres:12.16
+        ports:
+          - containerPort: 5432
+        env:
+          - name: POSTGRES_USER
+            value: "aplus"
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: aplus-init-secrets
+                key: POSTGRES_PASSWORD
+          - name: POSTGRES_DB
+            value: "aplus"
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: data
+      {{- if .Values.affinity }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: aplus-db-claim
+{{- end }}

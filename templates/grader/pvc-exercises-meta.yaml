@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grader-exercises-meta-claim
+spec:
+  {{- if .Values.pvcs.graderExercisesMeta.labels }}
+  selector:
+    matchLabels:
+      {{- range $key, $val := .Values.pvcs.graderExercisesMeta.labels }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+  {{- else }}
+  storageClassName: {{ .Values.pvcs.graderExercisesMeta.storageClassName }}
+  {{- end }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi

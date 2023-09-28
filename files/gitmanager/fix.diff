@@ -1,0 +1,13 @@
+diff --git a/access/views.py b/access/views.py
+index 2428796..b94bcf6 100644
+--- a/access/views.py
++++ b/access/views.py
+@@ -1,7 +1,7 @@
+ import json
+ import logging
+ from pathlib import Path
+-from typing import Any, Dict, List
++from typing import Any, Dict, List, Optional, Tuple
+ 
+ from django.shortcuts import render
+ from django.http import HttpRequest, HttpResponse, JsonResponse, Http404

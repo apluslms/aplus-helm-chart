@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aplus-env
+data:
+  POSTGRES_HOST: "{{ .Values.dbHost }}"
+  POSTGRES_DB_NAME: "{{ .Values.dbName }}"
+  POSTGRES_USER: "{{ .Values.dbUser }}"
+  POSTGRES_SSL_MODE: "{{ .Values.dbSslMode }}"
+  APP_HOSTNAME: "{{ .Values.aplus.hostname }}"
+  GRADER_APP_HOSTNAME: "{{ .Values.grader.hostname }}"
+  GRADER_EXTRA_HOSTNAMES: "{{ range $.Values.grader.extraHostnames }}{{ . }},{{ end }}"
+  GITMANAGER_APP_HOSTNAME: "{{ .Values.gitmanager.hostname }}"
+  NGINX_ALLOWED_IPS_LINE: "{{ range $.Values.aplus.allowedIPs }}allow {{ . | title -}}; {{ end }}"
+  {{- if .Values.aplus.extraHostnames }}
+  NGINX_EXTRA_HOSTNAMES_LINE: "{{ range $.Values.aplus.extraHostnames }}{{ . }} {{ end }}"
+  {{- else }}
+  NGINX_EXTRA_HOSTNAMES_LINE: "_"
+  {{- end }}
+  {{- if .Values.aplus.tls.enabled }}
+  URI_SCHEME: "https"
+  {{- else }}
+  URI_SCHEME: "http"
+  {{- end }}
+  KUBERNETES_NAMESPACE: "{{ .Release.Namespace }}"
+  PRIVACY_NOTICE_URL: {{ .Values.aplus.privacyNoticeUrl | default "" | quote }}
+  INSTALLED_LOGIN_APPS_STR: "{{ range $idx, $val := .Values.aplus.loginApps }}'{{ $val -}}',{{ end }}"
+  MAINTENANCE_MODE: "{{- if .Values.aplus.maintenance -}}1{{- else -}}0{{- end }}"
+  NGINX_ADMIN_IPS_LINE: "{{ range $.Values.aplus.adminIPs }}{{ . }} 1; {{ end }}"
+  {{- range $key, $val := .Values.aplus.env }}
+  {{ $key }}: {{ $val }}
+  {{- end }}
+  ENV_SETTINGS_PREFIX: "HELM_APLUS_"
+  HELM_RELEASE_NAME: "{{ .Release.Name }}"
+  {{- range $key, $val := .Values.aplus.djangoSettings }}
+  HELM_APLUS_{{ $key }}: {{ $val | toJson | quote }}
+  {{- end }}

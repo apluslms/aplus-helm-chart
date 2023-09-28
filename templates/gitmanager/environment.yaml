@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitmanager-env
+data:
+  APLUS_APP_HOSTNAME: "{{ .Values.aplus.hostname }}"
+  GRADER_APP_HOSTNAME: "{{ .Values.grader.hostname }}"
+  APP_HOSTNAME: "{{ .Values.gitmanager.hostname }}"
+  KUBERNETES_NAMESPACE: "{{ .Release.Namespace }}"
+  NGINX_ALLOWED_IPS_LINE: "{{ range $.Values.gitmanager.allowedIPs }}allow {{ . | title -}}; {{ end }}"
+  HUEY_IMMEDIATE: "False"
+  {{- if .Values.grader.tls.enabled }}
+  URI_SCHEME: "https"
+  {{- else }}
+  URI_SCHEME: "http"
+  {{- end}}
+  {{- if .Values.gitmanager.aplusAuthExtra }}
+  APLUS_AUTH_EXTRA: |-
+{{ .Values.gitmanager.aplusAuthExtra | indent 4}}
+  {{- else }}
+  APLUS_AUTH_EXTRA: ""
+  {{- end }}
+  {{- range $key, $val := .Values.gitmanager.env }}
+  {{ $key }}: {{ $val }}
+  {{- end }}
+  ENV_SETTINGS_PREFIX: "HELM_GITMANAGER_"
+  HELM_RELEASE_NAME: "{{ .Release.Name }}"
+  {{- range $key, $val := .Values.gitmanager.djangoSettings }}
+  HELM_GITMANAGER_{{ $key }}: {{ $val | toJson | quote }}
+  {{- end }}

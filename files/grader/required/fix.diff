@@ -1,0 +1,38 @@
+diff --git a/access/config.py b/access/config.py
+index f5d8b7a..d679289 100644
+--- a/access/config.py
++++ b/access/config.py
+@@ -20,11 +20,9 @@ DEFAULT_LANG = "en"
+ 
+ LOGGER = logging.getLogger('main')
+ 
+-
+ def _ext_exercise_loader(course_root, exercise_key, course_dir):
+     '''
+     Loader for exercises that were received from /configure.
+-
+     @type course_root: C{dict}
+     @param course_root: a course root dictionary
+     @type exercise_key: C{str}
+@@ -39,15 +37,19 @@ def _ext_exercise_loader(course_root, exercise_key, course_dir):
+         data = json.load(f)
+     ndata = {}
+     for lang, d in data.items():
++        if "container" in d:
++            if "mount" in d["container"]:
++                d["container"]["mount"] = os.path.join("files", d["container"]["mount"])
++            if "mounts" in d["container"]:
++                for k,v in d["container"]["mounts"]:
++                    d["container"]["mounts"][k] = os.path.join("files", v)
+         for key, value in d.items():
+             key = key+"|i18n"
+             if key not in ndata:
+                 ndata[key] = {}
+             ndata[key][lang] = value
+-
+     return config_file, os.path.getmtime(config_file), ndata
+ 
+-
+ class ConfigError(Exception):
+     '''
+     Configuration errors.

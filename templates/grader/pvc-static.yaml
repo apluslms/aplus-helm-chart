@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grader-static-claim
+spec:
+  {{- if .Values.pvcs.graderStatic.labels }}
+  selector:
+    matchLabels:
+      {{- range $key, $val := .Values.pvcs.graderStatic.labels }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end }}
+  {{- else }}
+  storageClassName: {{ .Values.pvcs.graderStatic.storageClassName }}
+  {{- end }}
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Mi

@@ -1,0 +1,37 @@
+from os.path import join
+
+BASE_URL = "${URI_SCHEME}://${APP_HOSTNAME}"
+
+APLUS_AUTH_LOCAL = {
+    "PRIVATE_KEY": open("/gitmanager-pem/gitmanager-private.pem", "r").read(),
+    "PUBLIC_KEY": open("/gitmanager-pem/gitmanager-public.pem", "r").read(),
+    "REMOTE_AUTHENTICATOR_KEY": open("/aplus-public.pem", "r").read(),
+    "REMOTE_AUTHENTICATOR_URL": "${URI_SCHEME}://${APLUS_APP_HOSTNAME}/api/v2/get-token/",
+    "REMOTE_AUTHENTICATOR_UID": "aplus",
+    "DISABLE_JWT_SIGNING": False,
+    "DISABLE_LOGIN_CHECKS": False,
+${APLUS_AUTH_EXTRA}
+}
+FRONTEND_URL ="${URI_SCHEME}://${APLUS_APP_HOSTNAME}"
+DEFAULT_GRADER_URL = "${URI_SCHEME}://${GRADER_APP_HOSTNAME}/configure"
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        'LOCATION': '${HELM_RELEASE_NAME}-memcached.${KUBERNETES_NAMESPACE}.svc.cluster.local:11211',
+        'TIMEOUT': None,
+    }
+}
+
+BUILD_MODULE = join(BASE_DIR, "scripts/kubernetes-build.py")
+BUILD_PATH = "/gitmanager-build"
+
+USE_X_SENDFILE = True
+
+COURSES_PATH = "/gitmanager/courses/publish"
+STORE_PATH = "/gitmanager/courses/store"
+
+DEFAULT_IMAGE = "apluslms/compile-rst:1.6"
+DEFAULT_CMD = "legacy_build"
+
+STATIC_CONTENT_HOST = "${URI_SCHEME}://${APP_HOSTNAME}"
