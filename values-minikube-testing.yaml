@@ -1,0 +1,31 @@
+pvcs:
+  aplusMedia:
+    storageClassName: standard
+  aplusDb:
+    storageClassName: standard
+  graderCourses:
+    storageClassName: standard
+  graderExercisesMeta:
+    storageClassName: standard
+  graderSubmissions:
+    storageClassName: standard
+  graderStatic:
+    storageClassName: standard
+  gitmanager:
+    storageClassName: standard
+  gitmanagerCourses:
+    storageClassName: standard
+  gitmanagerBuild:
+    storageClassName: standard
+
+aplus:
+  djangoSettings:
+    SESSION_COOKIE_SECURE: false
+
+grader:
+  djangoSettings:
+    DEBUG: true  # Required so AuthCookie not secure (no https)
+
+gitmanager:
+  djangoSettings:
+    DEBUG: true  # Required so AuthCookie not secure (no https)
