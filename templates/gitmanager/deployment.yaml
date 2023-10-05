@@ -128,7 +128,7 @@ spec:
           name: gitmanager-ssh
           subPath: {{ $keyName }}
         {{- end }}
-        {{- if .Values.gitmanager.known_hosts }}
+        {{- if .Values.gitmanager.knownHosts }}
         - mountPath: /root/.ssh/known_hosts
           name: gitmanager-ssh
           subPath: known_hosts
