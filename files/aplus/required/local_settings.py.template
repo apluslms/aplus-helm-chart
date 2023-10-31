@@ -30,9 +30,16 @@ SHIBBOLETH_ENVIRONMENT_VARS = {
     # ..more options in aplus/settings.py
 }
 
+## Cache settings depend on installed package
+import importlib.util
+if importlib.util.find_spec('pymemcache') is not None:
+    cache_backend = 'django.core.cache.backends.memcached.PyMemcacheCache'
+elif importlib.util.find_spec('pylibmc') is not None:
+    cache_backend = 'django.core.cache.backends.memcached.PyLibMCCache'
+
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        'BACKEND': cache_backend,
         'LOCATION': '${HELM_RELEASE_NAME}-memcached.${KUBERNETES_NAMESPACE}.svc.cluster.local:11211',
         'TIMEOUT': None,
         #'OPTIONS': {
@@ -40,8 +47,8 @@ CACHES = {
             #'server_max_value_length': 2 * 1024 * 1024,
         #},
     }
-
 }
+
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_COOKIE_SECURE = True
