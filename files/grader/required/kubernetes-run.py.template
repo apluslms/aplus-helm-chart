@@ -9,7 +9,7 @@ from access.config import ConfigError
 
 from kubernetes import client as c, config
 import re, itertools, json, sys, socket
-from os import listdir
+from os import listdir, path
 
 logger = logging.getLogger("runner.template")
 
@@ -96,9 +96,11 @@ def run(
         "subPath": sourcePath.split('/', 3)[3],
         "readOnly": True
       }
-      # Personalized exercises come from a different volume
+      # Check if personalized exercises directory exists, e.g. whether old or new way to generate is used
       if mountPath == '/personalized_exercise':
-        mount["name"] = "exercises-meta"
+        if not path.isdir('/'.join(sourcePath.split('/')[0:5]+["personalized_exercises"])):
+          # Personalized exercise comes from a different volume (old way)
+          mount["name"] = "exercises-meta"
       volume_mounts.append(mount)
 
     namespace = settings.get("namespace", "default")
