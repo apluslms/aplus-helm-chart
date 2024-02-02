@@ -20,6 +20,9 @@ spec:
         image: postgres:12.16
         ports:
           - containerPort: 5432
+        envFrom:
+        - configMapRef:
+            name: common-env
         env:
           - name: POSTGRES_USER
             value: "aplus"

@@ -2,6 +2,9 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+global:
+  timezone: "Europe/Helsinki"
+
 aplus:
   # replicaCount is the number of replicas of A+ to deploy
   replicaCount: 1
@@ -34,7 +37,8 @@ aplus:
   # env supplies the A+ container with extra environment variables
   env: {}
   # djangoSettings is a key-value mapping for defining settings for Django's local_settings.py file
-  djangoSettings: {}
+  djangoSettings:
+    TIME_ZONE: "Europe/Helsinki"
   ingress:
     # ingress.annotations defines extra annotations for A+ ingress
     annotations: {}
@@ -71,7 +75,8 @@ grader:
   allowedIPs:
   - "0.0.0.0/0"
   # djangoSettings is a key-value mapping for defining settings for Django's local_settings.py file
-  djangoSettings: {}
+  djangoSettings:
+    TIME_ZONE: "Europe/Helsinki"
   # env supplies the mooc-grader container with extra environment variables
   env:
     K8S_LABEL_KEY: 'aplus-app' # Used for pod labels / taints / tolerations
@@ -93,7 +98,8 @@ gitmanager:
     enabled: false
     # clusterIssuer: myClusterIssuer
   env: {}
-  djangoSettings: {}
+  djangoSettings:
+    TIME_ZONE: "Europe/Helsinki"
   sshKeys: {}
   ingress:
     annotations: {}

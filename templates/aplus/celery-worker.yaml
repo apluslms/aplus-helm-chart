@@ -45,6 +45,8 @@ spec:
         - "envsubst < /a-plus/aplus/local_settings.py.template > /a-plus/aplus/local_settings.py; celery -A aplus worker -B -l DEBUG --task-events --concurrency=1"
         envFrom:
         - configMapRef:
+            name: common-env
+        - configMapRef:
             name: aplus-env
         - secretRef:
             name: aplus-init-secrets

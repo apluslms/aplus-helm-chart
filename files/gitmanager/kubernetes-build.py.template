@@ -62,6 +62,7 @@ def build(
     volume_mounts = [
         { "name": "build", "mountPath": "/build" }
     ]
+    envFrom = [{ "configMapRef": { "name": "common-env" } }]
     env = [{"name": key, "value": value} for key,value in env.items()]
 
     pod = {
@@ -79,6 +80,7 @@ def build(
                 "volumeMounts": volume_mounts,
                 "imagePullPolicy": "IfNotPresent",
                 "env": env,
+                "envFrom": envFrom,
                 "workingDir": working_dir,
                 "args": cmd
             }],

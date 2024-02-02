@@ -36,6 +36,8 @@ spec:
           - containerPort: 80
         envFrom:
         - configMapRef:
+            name: common-env
+        - configMapRef:
             name: grader-env
         env:
         - name: LANG
@@ -85,6 +87,9 @@ spec:
         command: ["/run.sh"]
       - name: nginx
         image: nginx:stable
+        envFrom:
+        - configMapRef:
+            name: common-env
         env:
         - name: APP_HOSTNAME
           valueFrom:

@@ -45,6 +45,8 @@ spec:
         {{- end }}
         envFrom:
         - configMapRef:
+            name: common-env
+        - configMapRef:
             name: gitmanager-env
         {{- if .Values.gitmanager.resources }}
         resources: {{- toYaml .Values.gitmanager.resources | nindent 10 }}
@@ -95,6 +97,8 @@ spec:
         - name: REDIS_HOST
           value: gitmanager-redis
         envFrom:
+        - configMapRef:
+            name: common-env
         - configMapRef:
             name: gitmanager-env
         {{- if .Values.gitmanager.resources }}
@@ -150,6 +154,9 @@ spec:
       ### NGINX ###
       - name: nginx
         image: nginx:1.21.4
+        envFrom:
+        - configMapRef:
+            name: common-env
         env:
         - name: APP_HOSTNAME
           valueFrom:

@@ -153,13 +153,14 @@ def run(
         "imagePullPolicy": "IfNotPresent",
         "resources": resources,
         "env": [{ "name": "SID", "value": submission_id }, { "name": "REC", "value": "http://grader" }],
+        "envFrom": [{ "configMapRef": { "name": "common-env" } }],
         "securityContext": securityContext
       }],
       "nodeSelector": nodeSelector,
       "volumes": volumes,
       "restartPolicy": "Never",
       "tolerations": tolerations,
-      "imagePullSecrets": [{ "name": "mooc-grader-regkey" }]
+      "imagePullSecrets": [{ "name": "mooc-grader-regkey" }, { "name": "harbor-image-pull-secret" }]
       # FIXME: would this break anything?
       #automount_service_account_token=False,
     }
