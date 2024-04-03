@@ -163,6 +163,11 @@ spec:
             configMapKeyRef:
               name: gitmanager-env
               key: APP_HOSTNAME
+        - name: APLUS_APP_HOSTNAME
+          valueFrom:
+            configMapKeyRef:
+              name: gitmanager-env
+              key: APLUS_APP_HOSTNAME
         - name: NGINX_ALLOWED_IPS_LINE
           valueFrom:
             configMapKeyRef:
