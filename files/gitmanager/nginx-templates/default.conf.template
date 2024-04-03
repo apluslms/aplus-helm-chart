@@ -18,6 +18,9 @@ server {
       root /gitmanager/static/;
       try_files $uri $uri/index.html @protected;
     }
+    location /login {
+      add_header 'Access-Control-Allow-Origin' '${APLUS_APP_HOSTNAME}';
+    }
     location @protected {
       rewrite ^ /protected$uri break;
 
