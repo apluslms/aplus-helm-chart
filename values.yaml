@@ -47,6 +47,9 @@ aplus:
   # allowedIPs is a list of IP address CIDRs from which A+ can be accessed
   allowedIPs:
   - "0.0.0.0/0"
+  # djangoAdminIPs controls which IPs the django admin url can be accessed from. Should be set to same or stricter than allowedIPs.
+  djangoAdminIPs:
+  - "0.0.0.0/32"
 grader:
   # replicaCount is the number of replicas of mooc-grader to deploy
   replicaCount: 1

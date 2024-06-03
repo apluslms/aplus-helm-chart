@@ -12,6 +12,7 @@ data:
   GRADER_EXTRA_HOSTNAMES: "{{ range $.Values.grader.extraHostnames }}{{ . }},{{ end }}"
   GITMANAGER_APP_HOSTNAME: "{{ .Values.gitmanager.hostname }}"
   NGINX_ALLOWED_IPS_LINE: "{{ range $.Values.aplus.allowedIPs }}allow {{ . | title -}}; {{ end }}"
+  NGINX_DJANGO_ADMIN_IPS_LINE: "{{ range $.Values.aplus.djangoAdminIPs }}allow {{ . | title -}}; {{ end }}"
   {{- if .Values.aplus.extraHostnames }}
   NGINX_EXTRA_HOSTNAMES_LINE: "{{ range $.Values.aplus.extraHostnames }}{{ . }} {{ end }}"
   {{- else }}

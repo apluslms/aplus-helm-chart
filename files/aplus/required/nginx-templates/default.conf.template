@@ -93,6 +93,15 @@ server {
     uwsgi_read_timeout 300;
   }
 
+  location /admin {
+    if ($maintenance) { return 503; }
+    ${NGINX_DJANGO_ADMIN_IPS_LINE}
+    deny all;
+    include uwsgi_params;
+    uwsgi_pass aplus-web;
+    uwsgi_read_timeout 300;
+  }
+
   location /shibboleth {
     if ($maintenance) { return 503; }
     # shibboleth
