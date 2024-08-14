@@ -69,7 +69,7 @@ def run(
     #submission_mount_path = [k for (k,v) in readwrite_mounts.items() if v == "/submission"][0]
     #exercise_subpath = exercise_mount_path.split('/', 3)[3]
     #submission_subpath = submission_mount_path.split('/', 2)[2]
-    
+
     volumes = [
       { "name": "submission", "persistentVolumeClaim": { "claimName": "grader-submissions-claim" } },
       { "name": "exercise", "persistentVolumeClaim": { "claimName": "grader-courses-claim" } },
@@ -89,12 +89,13 @@ def run(
       }
       volume_mounts.append(mount)
     
+    writable_exercise_mount = container_config.get("writable_exercise_mount", False)
     for (sourcePath, mountPath) in readonly_mounts.items():
       mount = {
         "name": "exercise",
         "mountPath": mountPath,
         "subPath": sourcePath.split('/', 3)[3],
-        "readOnly": True
+        "readOnly": not writable_exercise_mount
       }
       # Check if personalized exercises directory exists, e.g. whether old or new way to generate is used
       if mountPath == '/personalized_exercise':
