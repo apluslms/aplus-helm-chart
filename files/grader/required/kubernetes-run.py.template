@@ -208,6 +208,17 @@ def run(
         "value": constant_env_string
       }]
 
+    if COURSE_LABEL == "id-420":
+      pod["spec"]["containers"][0]["env"].append({
+        "name": "LAPIO_GIT_SECRET",
+        "valueFrom": {
+          "secretKeyRef": {
+            "name": "lapio-git-secret",
+            "key": "lapio-git-secret"
+          }
+        }
+      })
+
     config.load_incluster_config()
     v1 = c.CoreV1Api()
     res = v1.create_namespaced_pod(
