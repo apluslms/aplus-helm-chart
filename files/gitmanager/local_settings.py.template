@@ -17,9 +17,14 @@ DEFAULT_GRADER_URL = "${URI_SCHEME}://${GRADER_APP_HOSTNAME}/configure"
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.memcached.PyMemcacheCache',
+        'BACKEND': 'util.retrying_memcache_client.RetryingMemcacheClient',
         'LOCATION': '${HELM_RELEASE_NAME}-memcached.${KUBERNETES_NAMESPACE}.svc.cluster.local:11211',
         'TIMEOUT': None,
+        'OPTIONS': {
+            'retry_attempts': 10,
+            'retry_timeout': 5,
+            'dead_timeout': 1,
+        }
     }
 }
 
