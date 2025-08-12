@@ -161,7 +161,7 @@ def run(
       "volumes": volumes,
       "restartPolicy": "Never",
       "tolerations": tolerations,
-      "imagePullSecrets": [{ "name": "mooc-grader-regkey" }, { "name": "harbor-image-pull-secret" }, { "name": "harbor-cs-e4190-k8s-puller" }]
+      "imagePullSecrets": [{ "name": "harbor-aplus-graders" }]
       # FIXME: would this break anything?
       #automount_service_account_token=False,
     }
