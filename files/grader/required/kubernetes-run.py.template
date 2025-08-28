@@ -208,7 +208,7 @@ def run(
         "value": constant_env_string
       }]
 
-    if COURSE_LABEL == "id-420":
+    if COURSE_LABEL in ["id-420", "id-451", "id-452"]:
       pod["spec"]["containers"][0]["env"].append({
         "name": "LAPIO_GIT_SECRET",
         "valueFrom": {
