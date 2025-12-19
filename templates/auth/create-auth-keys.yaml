@@ -11,7 +11,7 @@ spec:
       restartPolicy: Never
       containers:
       - name: create-keys
-        image: bitnami/kubectl:1.20.12
+        image: fissio/alpine-openssl-kubectl:v1.31.7
         command: ["/run.sh"]
         volumeMounts:
         - name: config
