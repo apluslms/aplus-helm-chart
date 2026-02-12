@@ -171,9 +171,13 @@ instrumentation:
   #   gitmanager: "Gitmanager"
 
 memcached:
-  extraEnvVars:
-  - name: "MEMCACHED_CACHE_SIZE"
-    value: "2048"
+  image:
+    repository: memcached
+    tag: 1.6.40
+  command: []
+  args:
+    - -m 2048
+    - -I 10m
   resources:
     limits:
       memory: 2048Mi
