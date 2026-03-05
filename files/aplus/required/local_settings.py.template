@@ -73,3 +73,11 @@ APLUS_AUTH_LOCAL = {
     }
 }
 
+# Enable combining dict values
+APLUS_AUTH_EXTRA = ${APLUS_AUTH_EXTRA}
+if "UID_TO_KEY" in APLUS_AUTH_EXTRA:
+    for key, val in APLUS_AUTH_EXTRA["UID_TO_KEY"].items():
+        APLUS_AUTH_LOCAL["UID_TO_KEY"][key] = val
+if "TRUSTING_REMOTES" in APLUS_AUTH_EXTRA:
+    for key, val in APLUS_AUTH_EXTRA["TRUSTING_REMOTES"].items():
+        APLUS_AUTH_LOCAL["TRUSTING_REMOTES"][key] = val

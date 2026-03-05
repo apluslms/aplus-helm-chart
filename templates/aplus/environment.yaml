@@ -36,3 +36,8 @@ data:
   {{- range $key, $val := .Values.aplus.djangoSettings }}
   HELM_APLUS_{{ $key }}: {{ $val | toJson | quote }}
   {{- end }}
+  {{- if .Values.aplus.aplusAuthExtra }}
+  APLUS_AUTH_EXTRA: {{ .Values.aplus.aplusAuthExtra | toJson | quote }}
+  {{- else }}
+  APLUS_AUTH_EXTRA: "{}"
+  {{- end }}
