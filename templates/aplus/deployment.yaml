@@ -149,12 +149,9 @@ spec:
         - mountPath: /etc/shibboleth/shibboleth2.xml
           name: config
           subPath: shibboleth2.xml
-        - mountPath: /etc/shibboleth/haka-sign-v4.pem
+        - mountPath: /etc/shibboleth/haka-sign-v10.pem
           name: config
-          subPath: haka-sign-v4.pem
-        - mountPath: /etc/shibboleth/haka-sign-v9.pem
-          name: config
-          subPath: haka-sign-v9.pem
+          subPath: haka-sign-v10.pem
         - mountPath: /etc/shibboleth/haka_testi_2018_sha2.crt
           name: config
           subPath: haka_testi_2018_sha2.crt
