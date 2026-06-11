@@ -8,6 +8,9 @@ metadata:
     {{- if .Values.gitmanager.tls.clusterIssuer  }}
     cert-manager.io/cluster-issuer: {{ .Values.gitmanager.tls.clusterIssuer }}
     {{- end}}
+    {{- if .Values.gitmanager.tls.issuer  }}
+    cert-manager.io/issuer: {{ .Values.gitmanager.tls.issuer }}
+    {{- end}}
     {{- if .Values.gitmanager.ingress.annotations }}
     {{- toYaml .Values.gitmanager.ingress.annotations | nindent 4 }}
     {{- end }}

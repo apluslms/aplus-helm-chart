@@ -12,6 +12,9 @@ metadata:
     {{- if .Values.aplus.tls.clusterIssuer  }}
     cert-manager.io/cluster-issuer: {{ .Values.aplus.tls.clusterIssuer }}
     {{- end }}
+    {{- if .Values.aplus.tls.issuer  }}
+    cert-manager.io/issuer: {{ .Values.aplus.tls.issuer }}
+    {{- end }}
     {{- if .Values.aplus.ingress.annotations }}
     {{- toYaml .Values.aplus.ingress.annotations | trim | nindent 4 -}}
     {{- end }}

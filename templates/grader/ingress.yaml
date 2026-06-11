@@ -11,6 +11,9 @@ metadata:
     {{- if .Values.grader.tls.clusterIssuer  }}
     cert-manager.io/cluster-issuer: {{ .Values.grader.tls.clusterIssuer }}
     {{- end}}
+    {{- if .Values.grader.tls.issuer  }}
+    cert-manager.io/issuer: {{ .Values.grader.tls.issuer }}
+    {{- end}}
     {{- if .Values.grader.ingress.annotations }}
     {{- toYaml .Values.grader.ingress.annotations | nindent 4 }}
     {{- end }}
