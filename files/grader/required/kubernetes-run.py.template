@@ -121,12 +121,12 @@ def run(
     mem = resource_config.get("memory", DEFAULT_MEM)
     cpu = resource_config.get("cpu", DEFAULT_CPU)
 
-    securityContext = {}
+    securityContext: dict[str, Any] = { "seccompProfile": { "type": "RuntimeDefault" } }
     nodeSelector = {}
     tolerations = []
 
     if container_config.get("privileged", False) != False:
-      securityContext = { "privileged": True }
+      securityContext["privileged"] = True
       nodeSelector = { "${K8S_LABEL_KEY}": "privileged-grading" }
       tolerations = [{
         "key": "${K8S_LABEL_KEY}",
