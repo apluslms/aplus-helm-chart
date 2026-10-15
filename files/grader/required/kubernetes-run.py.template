@@ -119,7 +119,7 @@ def run(
     # Initial resources config
     resource_config = container_config.get("resources", {})
     mem = resource_config.get("memory", DEFAULT_MEM)
-    cpu = resource_config.get("cpu", DEFAULT_CPU)
+    cpu = str(resource_config.get("cpu", DEFAULT_CPU))
 
     securityContext = {}
     nodeSelector = {}
